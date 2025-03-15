@@ -1,4 +1,4 @@
-package com.example.nextwave
+package com.example.netxwave
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

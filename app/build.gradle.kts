@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nextwave"
+    namespace = "com.lakehorestudios.nextwave"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.nextwave"
+        applicationId = "com.lakehorestudios.nextwave"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
