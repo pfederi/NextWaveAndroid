@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108"
+    android:tint="#FFFFFF">
+    
+    <group android:scaleX="0.4"
+           android:scaleY="0.4"
+           android:translateX="32.4"
+           android:translateY="32.4">
+        
+        <!-- Erste Welle -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M0,54 Q27,42 54,54 T108,54 L108,108 L0,108 Z" />
+        
+        <!-- Zweite Welle (kleiner) -->
+        <path
+            android:fillColor="#B3E5FC"
+            android:pathData="M0,64 Q27,52 54,64 T108,64 L108,108 L0,108 Z" />
+        
+        <!-- Dritte Welle (noch kleiner) -->
+        <path
+            android:fillColor="#4FC3F7"
+            android:pathData="M0,74 Q27,62 54,74 T108,74 L108,108 L0,108 Z" />
+        
+        <!-- Boot-Symbol -->
+        <path
+            android:fillColor="#01579B"
+            android:pathData="M54,30 L72,48 L36,48 Z" />
+    </group>
+</vector>
