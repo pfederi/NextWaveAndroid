@@ -1,4 +1,4 @@
-package com.example.nextwave
+package nextwave.example.nextwave
 
 import org.junit.Test
 
