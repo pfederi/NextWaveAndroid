@@ -8,6 +8,7 @@ import com.google.gson.reflect.TypeToken
 import com.lakeshorestudios.nextwave.data.models.WaterTemperature
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.lakeshorestudios.nextwave.data.utils.readTextWithTimeout
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -70,7 +71,7 @@ class AlplakesApiClient(private val context: Context) {
             val url = "https://alplakes-api.eawag.ch/simulations/1d/profile/simstrat/$alplakesName/$timestamp"
             Log.d(TAG, "Fetching water temperature for $lakeName from: $url")
 
-            val responseText = URL(url).readText()
+            val responseText = URL(url).readTextWithTimeout()
 
             // Parse the response: surface temp is the last element in variables.T.data
             // (depth array goes from deep to shallow, last = surface at 0m)

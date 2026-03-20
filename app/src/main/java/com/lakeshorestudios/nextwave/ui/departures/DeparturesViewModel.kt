@@ -23,6 +23,8 @@ import com.lakeshorestudios.nextwave.ui.settings.SettingsViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -114,12 +116,11 @@ class DeparturesViewModel(
     private fun loadStations() {
         viewModelScope.launch {
             try {
-                repository.getAllStations().collect { stations ->
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            stations = stations
-                        )
-                    }
+                val stations = repository.getAllStations().first()
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        stations = stations
+                    )
                 }
             } catch (e: Exception) {
                 // Error loading stations - we can still continue
@@ -134,24 +135,23 @@ class DeparturesViewModel(
     private fun loadStation() {
         viewModelScope.launch {
             try {
-                repository.getStationById(stationId).collect { station ->
-                    if (station != null) {
-                        val isFavorite = favoritesManager.isFavorite(station.id)
-                        _uiState.update { currentState ->
-                            currentState.copy(
-                                station = station,
-                                isLoading = true, // Set isLoading to true while we load the departures
-                                isFavorite = isFavorite
-                            )
-                        }
-                        loadDepartures(station)
-                    } else {
-                        _uiState.update { currentState ->
-                            currentState.copy(
-                                isLoading = false,
-                                error = "Station not found"
-                            )
-                        }
+                val station = repository.getStationById(stationId).firstOrNull()
+                if (station != null) {
+                    val isFavorite = favoritesManager.isFavorite(station.id)
+                    _uiState.update { currentState ->
+                        currentState.copy(
+                            station = station,
+                            isLoading = true, // Set isLoading to true while we load the departures
+                            isFavorite = isFavorite
+                        )
+                    }
+                    loadDepartures(station)
+                } else {
+                    _uiState.update { currentState ->
+                        currentState.copy(
+                            isLoading = false,
+                            error = "Station not found"
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -265,10 +265,7 @@ class DeparturesViewModel(
                 val childStationIds = station.childStationIds
                 
                 // Load regular stations to get all Geneva stations
-                val allStations = mutableListOf<Station>()
-                repository.getAllStations().collect { stations ->
-                    allStations.addAll(stations)
-                }
+                val allStations = repository.getAllStations().first()
                 val genevaStations = allStations.filter { it.id in childStationIds }
                 
                 val selectedDate = _uiState.value.selectedDate
@@ -378,15 +375,14 @@ class DeparturesViewModel(
                             departureTime.set(Calendar.DAY_OF_MONTH, selectedDateCalendar.get(Calendar.DAY_OF_MONTH))
                             
                             // Get forecast for the departure time
-                            weatherRepository.getForecastForSpecificTime(
+                            val weatherInfo = weatherRepository.getForecastForSpecificTime(
                                 station.latitude,
                                 station.longitude,
                                 departureTime.time
-                            ).collect { weatherInfo ->
-                                // Store the forecast with a key that includes the departure time
-                                updateWeatherInfo("${departure.time}", weatherInfo)
-                                android.util.Log.d("DeparturesViewModel", "Loaded forecast for departure at ${departure.time}")
-                            }
+                            ).first()
+                            // Store the forecast with a key that includes the departure time
+                            updateWeatherInfo("${departure.time}", weatherInfo)
+                            android.util.Log.d("DeparturesViewModel", "Loaded forecast for departure at ${departure.time}")
                         }
                     } catch (e: Exception) {
                         android.util.Log.e("DeparturesViewModel", "Error loading forecast for departure at ${departure.time}: ${e.message}")
@@ -423,16 +419,15 @@ class DeparturesViewModel(
                     return@launch
                 }
 
-                lakeDataRepository.getLakeEnvironmentData(lakeName, date).collect { data ->
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            lakeEnvironmentData = data,
-                            sunTimes = data.sunTimes,
-                            isLoadingWeather = false
-                        )
-                    }
-                    Log.d("DeparturesViewModel", "Loaded lake data for $lakeName: temp=${data.waterTemperature}, level=${data.waterLevel}, sunTimes=${data.sunTimes != null}")
+                val data = lakeDataRepository.getLakeEnvironmentData(lakeName, date).first()
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        lakeEnvironmentData = data,
+                        sunTimes = data.sunTimes,
+                        isLoadingWeather = false
+                    )
                 }
+                Log.d("DeparturesViewModel", "Loaded lake data for $lakeName: temp=${data.waterTemperature}, level=${data.waterLevel}, sunTimes=${data.sunTimes != null}")
             } catch (e: Exception) {
                 Log.e("DeparturesViewModel", "Error loading lake environment data: ${e.message}")
                 _uiState.update { it.copy(isLoadingWeather = false) }

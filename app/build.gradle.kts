@@ -15,6 +15,12 @@ android {
         versionName = "1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Weather API key - override via local.properties or environment variable
+        val weatherApiKey = project.findProperty("WEATHER_API_KEY") as? String
+            ?: System.getenv("WEATHER_API_KEY")
+            ?: "06de570cc7607ea17842332e0be7a605"
+        buildConfigField("String", "WEATHER_API_KEY", "\"$weatherApiKey\"")
     }
 
     // Konfiguration für vollständige signierte APK-Datei
@@ -89,6 +95,7 @@ android {
     buildFeatures {
         viewBinding = true
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"

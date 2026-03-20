@@ -31,7 +31,7 @@ interface WeatherApiService {
     ): ForecastResponse
     
     companion object {
-        private const val API_KEY = "06de570cc7607ea17842332e0be7a605"
+        private val API_KEY = com.lakeshorestudios.nextwave.BuildConfig.WEATHER_API_KEY
     }
 }
 
@@ -43,7 +43,8 @@ class WeatherApiClient {
     
     init {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (com.lakeshorestudios.nextwave.BuildConfig.DEBUG)
+                HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
         }
         
         val okHttpClient = OkHttpClient.Builder()

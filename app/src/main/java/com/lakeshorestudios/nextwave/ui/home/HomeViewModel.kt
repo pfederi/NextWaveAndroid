@@ -27,6 +27,8 @@ import com.lakeshorestudios.nextwave.ui.settings.SettingsViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -193,15 +195,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      */
     private fun loadWeatherForNearestStation() {
         val nearestStation = _uiState.value.nearestStation ?: return
-        
+
         viewModelScope.launch {
             try {
-                weatherRepository.getWeatherForLocation(
-                    nearestStation.latitude,
-                    nearestStation.longitude
-                ).collect { weatherInfo ->
-                    updateWeatherInfo(nearestStation.id, weatherInfo)
-                }
+                val weatherInfo = weatherRepository.getWeatherForLocation(
+                    nearestStation.latitude, nearestStation.longitude
+                ).first()
+                updateWeatherInfo(nearestStation.id, weatherInfo)
             } catch (e: Exception) {
                 android.util.Log.e("HomeViewModel", "Error loading weather for nearest station: ${e.message}")
             }
@@ -218,12 +218,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             favoriteStations.forEach { station ->
                 try {
-                    weatherRepository.getWeatherForLocation(
+                    val weatherInfo = weatherRepository.getWeatherForLocation(
                         station.latitude,
                         station.longitude
-                    ).collect { weatherInfo ->
-                        updateWeatherInfo(station.id, weatherInfo)
-                    }
+                    ).first()
+                    updateWeatherInfo(station.id, weatherInfo)
                 } catch (e: Exception) {
                     android.util.Log.e("HomeViewModel", "Error loading weather for station ${station.name}: ${e.message}")
                 }
@@ -239,12 +238,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         
         viewModelScope.launch {
             try {
-                weatherRepository.getWeatherForLocation(
+                val weatherInfo = weatherRepository.getWeatherForLocation(
                     currentLocation.latitude,
                     currentLocation.longitude
-                ).collect { weatherInfo ->
-                    updateWeatherInfo("current_location", weatherInfo)
-                }
+                ).first()
+                updateWeatherInfo("current_location", weatherInfo)
             } catch (e: Exception) {
                 android.util.Log.e("HomeViewModel", "Error loading weather for current location: ${e.message}")
             }
@@ -260,13 +258,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                lakeDataRepository.getLakeEnvironmentData(lakeName, Date()).collect { data ->
-                    _uiState.update { currentState ->
-                        val updatedData = currentState.lakeEnvironmentData.toMutableMap().apply {
-                            put(station.id, data)
-                        }
-                        currentState.copy(lakeEnvironmentData = updatedData)
+                val data = lakeDataRepository.getLakeEnvironmentData(lakeName, Date()).first()
+                _uiState.update { currentState ->
+                    val updatedData = currentState.lakeEnvironmentData.toMutableMap().apply {
+                        put(station.id, data)
                     }
+                    currentState.copy(lakeEnvironmentData = updatedData)
                 }
             } catch (e: Exception) {
                 android.util.Log.e("HomeViewModel", "Error loading lake data for ${station.name}: ${e.message}")
@@ -439,34 +436,33 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadStations() {
         viewModelScope.launch {
             try {
-                repository.getAllStations().collect { stations ->
-                    // Get current location
-                    val currentLocation = _uiState.value.currentLocation ?: getCurrentLocation()
-                    
-                    // Find nearest station
-                    val (nearestStation, distanceKm) = if (currentLocation != null) {
-                        findNearestStationWithDistance(stations, currentLocation)
-                    } else {
-                        // If no location is available, return null for both
-                        Pair(null, null)
-                    }
-                    
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            isLoading = false,
-                            stations = stations,
-                            nearestStation = nearestStation,
-                            nearestStationDistanceKm = distanceKm
-                        )
-                    }
-                    
-                    // Load next departure for nearest station
-                    nearestStation?.let { loadNextDeparture(it) }
-                    
-                    // Load weather for nearest station if weather info is enabled
-                    if (_uiState.value.showWeatherInfo && nearestStation != null) {
-                        loadWeatherForNearestStation()
-                    }
+                val stations = repository.getAllStations().first()
+                // Get current location
+                val currentLocation = _uiState.value.currentLocation ?: getCurrentLocation()
+
+                // Find nearest station
+                val (nearestStation, distanceKm) = if (currentLocation != null) {
+                    findNearestStationWithDistance(stations, currentLocation)
+                } else {
+                    // If no location is available, return null for both
+                    Pair(null, null)
+                }
+
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isLoading = false,
+                        stations = stations,
+                        nearestStation = nearestStation,
+                        nearestStationDistanceKm = distanceKm
+                    )
+                }
+
+                // Load next departure for nearest station
+                nearestStation?.let { loadNextDeparture(it) }
+
+                // Load weather for nearest station if weather info is enabled
+                if (_uiState.value.showWeatherInfo && nearestStation != null) {
+                    loadWeatherForNearestStation()
                 }
             } catch (e: Exception) {
                 _uiState.update { currentState ->
@@ -581,26 +577,25 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadTomorrowForecast(station: Station) {
         viewModelScope.launch {
             try {
-                weatherRepository.getForecastForLocation(
+                val weatherInfo = weatherRepository.getForecastForLocation(
                     station.latitude,
                     station.longitude
-                ).collect { weatherInfo ->
-                    // Make sure the weatherInfo has forecastDate set to tomorrow
-                    val tomorrow = java.util.Calendar.getInstance().apply {
-                        add(java.util.Calendar.DAY_OF_YEAR, 1)
-                        set(java.util.Calendar.HOUR_OF_DAY, 12) // Noon tomorrow
-                        set(java.util.Calendar.MINUTE, 0)
-                        set(java.util.Calendar.SECOND, 0)
-                    }
-                    
-                    val updatedWeatherInfo = weatherInfo.copy(
-                        forecastDate = tomorrow.time
-                    )
-                    
-                    // Store the forecast with the station ID
-                    updateWeatherInfo(station.id, updatedWeatherInfo)
-                    android.util.Log.d("HomeViewModel", "Loaded tomorrow's forecast for station ${station.name}")
+                ).first()
+                // Make sure the weatherInfo has forecastDate set to tomorrow
+                val tomorrow = java.util.Calendar.getInstance().apply {
+                    add(java.util.Calendar.DAY_OF_YEAR, 1)
+                    set(java.util.Calendar.HOUR_OF_DAY, 12) // Noon tomorrow
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
                 }
+
+                val updatedWeatherInfo = weatherInfo.copy(
+                    forecastDate = tomorrow.time
+                )
+
+                // Store the forecast with the station ID
+                updateWeatherInfo(station.id, updatedWeatherInfo)
+                android.util.Log.d("HomeViewModel", "Loaded tomorrow's forecast for station ${station.name}")
             } catch (e: Exception) {
                 android.util.Log.e("HomeViewModel", "Error loading tomorrow's forecast: ${e.message}")
             }
@@ -628,15 +623,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     departureTime.set(java.util.Calendar.DAY_OF_MONTH, today.get(java.util.Calendar.DAY_OF_MONTH))
                     
                     // Get forecast for the departure time
-                    weatherRepository.getForecastForSpecificTime(
+                    val weatherInfo = weatherRepository.getForecastForSpecificTime(
                         station.latitude,
                         station.longitude,
                         departureTime.time
-                    ).collect { weatherInfo ->
-                        // Store the forecast with a special key that includes "departure_" prefix
-                        updateWeatherInfo("departure_${station.id}", weatherInfo)
-                        android.util.Log.d("HomeViewModel", "Loaded forecast for departure at ${departure.time} for station ${station.name}")
-                    }
+                    ).first()
+                    // Store the forecast with a special key that includes "departure_" prefix
+                    updateWeatherInfo("departure_${station.id}", weatherInfo)
+                    android.util.Log.d("HomeViewModel", "Loaded forecast for departure at ${departure.time} for station ${station.name}")
                 }
             } catch (e: Exception) {
                 android.util.Log.e("HomeViewModel", "Error loading forecast for departure: ${e.message}")
@@ -771,10 +765,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 weatherRepository.getForecastForLocation(
                     nearestStation.latitude,
                     nearestStation.longitude
-                ).collect { _ ->
-                    // Store forecast in a separate map or update UI as needed
-                    android.util.Log.d("HomeViewModel", "Loaded forecast for nearest station: ${nearestStation.name}")
-                }
+                ).first()
+                // Store forecast in a separate map or update UI as needed
+                android.util.Log.d("HomeViewModel", "Loaded forecast for nearest station: ${nearestStation.name}")
             } catch (e: Exception) {
                 android.util.Log.e("HomeViewModel", "Error loading forecast for nearest station: ${e.message}")
             }
@@ -794,10 +787,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     weatherRepository.getForecastForLocation(
                         station.latitude,
                         station.longitude
-                    ).collect { _ ->
-                        // Store forecast in a separate map or update UI as needed
-                        android.util.Log.d("HomeViewModel", "Loaded forecast for station ${station.name}")
-                    }
+                    ).first()
+                    // Store forecast in a separate map or update UI as needed
+                    android.util.Log.d("HomeViewModel", "Loaded forecast for station ${station.name}")
                 } catch (e: Exception) {
                     android.util.Log.e("HomeViewModel", "Error loading forecast for station ${station.name}: ${e.message}")
                 }

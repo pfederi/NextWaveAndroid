@@ -6,6 +6,7 @@ import com.google.gson.annotations.SerializedName
 import com.lakeshorestudios.nextwave.data.models.WaterLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.lakeshorestudios.nextwave.data.utils.readTextWithTimeout
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 
@@ -21,8 +22,8 @@ class VesselDataApiClient {
     private val cacheValidityMs = 24 * 60 * 60 * 1000L // 24 hours
 
     // All lakes data from last fetch
-    private var allLakesCache: List<WaterLevel>? = null
-    private var allLakesCacheTime: Long = 0
+    @Volatile private var allLakesCache: List<WaterLevel>? = null
+    @Volatile private var allLakesCacheTime: Long = 0
 
     /**
      * Get water level for a specific lake.
@@ -57,7 +58,7 @@ class VesselDataApiClient {
             val url = "https://vesseldata-api.vercel.app/api/water-temperature"
             Log.d(TAG, "Fetching water levels from: $url")
 
-            val responseText = URL(url).readText()
+            val responseText = URL(url).readTextWithTimeout()
             val response = Gson().fromJson(responseText, VesselDataResponse::class.java)
 
             val waterLevels = response.lakes?.map { lake ->

@@ -6,6 +6,7 @@ import com.lakeshorestudios.nextwave.data.models.SunTimes
 import com.lakeshorestudios.nextwave.data.models.SunTimesResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.lakeshorestudios.nextwave.data.utils.readTextWithTimeout
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -39,7 +40,7 @@ class SunTimesApiClient {
             val url = "https://api.sunrise-sunset.org/json?lat=$latitude&lng=$longitude&date=$dateString&formatted=0"
 
             Log.d(TAG, "Fetching sun times for $dateString")
-            val responseText = URL(url).readText()
+            val responseText = URL(url).readTextWithTimeout()
             val response = Gson().fromJson(responseText, SunTimesResponse::class.java)
 
             if (response.status != "OK") {

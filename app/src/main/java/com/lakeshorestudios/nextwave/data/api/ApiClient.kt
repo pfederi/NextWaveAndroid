@@ -20,9 +20,10 @@ object ApiClient {
      */
     private val okHttpClient by lazy {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (com.lakeshorestudios.nextwave.BuildConfig.DEBUG)
+                HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
         }
-        
+
         OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)

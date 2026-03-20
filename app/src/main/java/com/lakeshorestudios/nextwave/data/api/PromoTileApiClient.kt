@@ -6,6 +6,7 @@ import com.lakeshorestudios.nextwave.data.models.PromoTile
 import com.lakeshorestudios.nextwave.data.models.PromoTilesResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.lakeshorestudios.nextwave.data.utils.readTextWithTimeout
 import java.net.URL
 
 /**
@@ -14,8 +15,8 @@ import java.net.URL
  */
 class PromoTileApiClient {
 
-    private var cachedTiles: List<PromoTile>? = null
-    private var cacheTime: Long = 0
+    @Volatile private var cachedTiles: List<PromoTile>? = null
+    @Volatile private var cacheTime: Long = 0
     private val cacheValidityMs = 60 * 60 * 1000L // 1 hour
 
     suspend fun getPromoTiles(): List<PromoTile> = withContext(Dispatchers.IO) {
@@ -29,7 +30,7 @@ class PromoTileApiClient {
             val url = "https://www.nextwaveapp.ch/api/promo-tiles.json"
             Log.d(TAG, "Fetching promo tiles from: $url")
 
-            val responseText = URL(url).readText()
+            val responseText = URL(url).readTextWithTimeout()
             val response = Gson().fromJson(responseText, PromoTilesResponse::class.java)
 
             val validTiles = response.tiles.filter { it.isValid }
