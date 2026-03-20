@@ -11,8 +11,8 @@ android {
         applicationId = "com.lakeshorestudios.nextwave"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.2"
+        versionCode = 9
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -26,18 +26,10 @@ android {
     // Konfiguration für vollständige signierte APK-Datei
     signingConfigs {
         create("release") {
-            // Um eine signierte APK zu erstellen, entfernen Sie die Kommentarzeichen und 
-            // fügen Sie Ihre eigenen Keystore-Informationen ein
-            // storeFile = file("path/to/your/keystore.jks")
-            // storePassword = "Ihr-Keystore-Passwort"
-            // keyAlias = "Ihr-Key-Alias"
-            // keyPassword = "Ihr-Key-Passwort"
-            
-            // Alternative: Laden Sie die Werte aus gradle.properties oder Umgebungsvariablen
-            // storeFile = file(System.getenv("KEYSTORE_FILE") ?: "keystore.jks")
-            // storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-            // keyAlias = System.getenv("KEY_ALIAS") ?: ""
-            // keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            storeFile = file(System.getenv("KEYSTORE_FILE") ?: "${System.getProperty("user.home")}/keystores/nextwave-release.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("KEY_ALIAS") ?: "nextwave"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
         }
     }
 
@@ -50,8 +42,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Um die Signierung zu aktivieren, entfernen Sie die Kommentarzeichen in der nächsten Zeile
-            // signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("release")
         }
         
         // Eine Debug-ähnliche Release-Version für Debugging-Zwecke
