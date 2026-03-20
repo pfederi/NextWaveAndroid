@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -11,7 +13,7 @@ android {
         applicationId = "com.lakeshorestudios.nextwave"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
+        versionCode = 12
         versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -23,13 +25,17 @@ android {
         buildConfigField("String", "WEATHER_API_KEY", "\"$weatherApiKey\"")
     }
 
-    // Konfiguration für vollständige signierte APK-Datei
+    // Signing-Konfiguration aus local.properties
+    val localProps = Properties().also { props: Properties ->
+        val f = rootProject.file("local.properties")
+        if (f.exists()) props.load(f.inputStream())
+    }
     signingConfigs {
         create("release") {
-            storeFile = file(System.getenv("KEYSTORE_FILE") ?: "${System.getProperty("user.home")}/keystores/nextwave-release.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias = System.getenv("KEY_ALIAS") ?: "nextwave"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            storeFile = file(localProps.getProperty("signing.storeFile", "${System.getProperty("user.home")}/keystores/nextwave-release.jks"))
+            storePassword = localProps.getProperty("signing.storePassword", "")
+            keyAlias = localProps.getProperty("signing.keyAlias", "nextwave")
+            keyPassword = localProps.getProperty("signing.keyPassword", "")
         }
     }
 

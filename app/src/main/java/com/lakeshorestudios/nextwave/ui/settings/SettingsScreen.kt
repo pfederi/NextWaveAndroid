@@ -338,7 +338,7 @@ fun SettingsScreen(
                         color = accentColor,
                         textDecoration = TextDecoration.Underline,
                         modifier = Modifier
-                            .clickable { openUrl(context, "https://www.nextwaveapp.ch/privacy") }
+                            .clickable { openUrl(context, "https://nextwaveapp.ch/privacy") }
                             .padding(vertical = 8.dp)
                     )
                 }
