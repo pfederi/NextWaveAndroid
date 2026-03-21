@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lakeshorestudios.nextwave.data.models.Departure
 import com.lakeshorestudios.nextwave.data.models.DepartureStatus
+import com.lakeshorestudios.nextwave.data.models.WaveRating
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -597,7 +598,40 @@ fun DepartureItem(
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.width(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+
+                        // Ship name chip (Zürichsee only)
+                        departure.shipName?.let { name ->
+                            if (name != "Unknown") {
+                                val rating = WaveRating.forShip(name)
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = name,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        // Wave rating dots
+                                        repeat(rating.waves) {
+                                            Text(
+                                                text = "~",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
                         }
 
                         Row(
@@ -613,7 +647,9 @@ fun DepartureItem(
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = departure.nextStation,
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
                     }

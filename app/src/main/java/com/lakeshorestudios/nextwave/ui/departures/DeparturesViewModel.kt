@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.lakeshorestudios.nextwave.data.api.ShipApiClient
 import com.lakeshorestudios.nextwave.data.api.TransportApiClient
 import com.lakeshorestudios.nextwave.data.api.TransportApiError
 import com.lakeshorestudios.nextwave.data.models.Departure
@@ -63,6 +64,7 @@ class DeparturesViewModel(
     private val favoritesManager = FavoritesManager.getInstance(application)
     private val weatherRepository = WeatherRepository.getInstance(application)
     private val lakeDataRepository = LakeDataRepository.getInstance(application)
+    private val shipApiClient = ShipApiClient.getInstance()
     private val sharedPreferences = application.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
     
     private val _uiState = MutableStateFlow(DeparturesScreenState())
@@ -237,6 +239,9 @@ class DeparturesViewModel(
 
                     // Load lake environment data (water temp, water level, sun times)
                     loadLakeEnvironmentData(station, _uiState.value.selectedDate)
+
+                    // Load ship names for Zürichsee
+                    loadShipNames(station, processedDepartures, _uiState.value.selectedDate)
                 } catch (e: TransportApiError) {
                     _uiState.update { currentState ->
                         currentState.copy(
@@ -431,6 +436,41 @@ class DeparturesViewModel(
             } catch (e: Exception) {
                 Log.e("DeparturesViewModel", "Error loading lake environment data: ${e.message}")
                 _uiState.update { it.copy(isLoadingWeather = false) }
+            }
+        }
+    }
+
+    /**
+     * Load ship names for Zürichsee departures (only for next 3 days)
+     */
+    private fun loadShipNames(station: Station, departures: List<Departure>, date: Date) {
+        if (station.lake != "Zürichsee") return
+
+        // Only load for today and next 2 days
+        val today = Calendar.getInstance()
+        val selectedCal = Calendar.getInstance().apply { time = date }
+        val daysDiff = ((selectedCal.timeInMillis - today.timeInMillis) / (24 * 60 * 60 * 1000)).toInt()
+        if (daysDiff > 2) return
+
+        viewModelScope.launch {
+            try {
+                departures.forEach { departure ->
+                    if (departure.journeyNumber.isNotEmpty()) {
+                        val shipName = shipApiClient.findShipName(departure.journeyNumber, date)
+                        if (shipName != null) {
+                            _uiState.update { state ->
+                                val updated = state.departures.map { d ->
+                                    if (d.time == departure.time && d.journeyNumber == departure.journeyNumber) {
+                                        d.copy(shipName = shipName)
+                                    } else d
+                                }
+                                state.copy(departures = updated)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("DeparturesViewModel", "Error loading ship names: ${e.message}")
             }
         }
     }
