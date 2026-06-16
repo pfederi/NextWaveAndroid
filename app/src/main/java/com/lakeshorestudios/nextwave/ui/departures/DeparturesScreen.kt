@@ -47,7 +47,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -74,7 +73,6 @@ import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
-import android.content.Intent
 import com.composables.icons.lucide.Cloud
 import com.composables.icons.lucide.CloudRain
 import com.composables.icons.lucide.CloudSun
@@ -887,64 +885,6 @@ private fun getWindDirection(degrees: Int): String {
     return directions[index]
 }
 
-/**
- * Parse departure time string into a Date using the selected date as base
- */
-/**
- * Generate share text for a departure (like iOS)
- */
-private fun generateShareText(
-    departure: Departure,
-    selectedDate: Date,
-    weatherInfo: WeatherInfo?,
-    lakeEnvironmentData: LakeEnvironmentData?,
-    stationName: String
-): String {
-    val dateFormat = SimpleDateFormat("EEEE, d. MMMM yyyy", Locale("de", "CH"))
-    val dateString = dateFormat.format(selectedDate)
-
-    val introTexts = listOf(
-        "\uD83E\uDD73 Let's share the next wave for a party wave!",
-        "\uD83C\uDF0A Catch the wave with me!",
-        "\uD83C\uDF0A Ready to ride the next wave together?",
-        "\uD83D\uDEA2 All aboard for the next adventure!",
-        "\uD83C\uDF0A Join me on this wave - it's going to be epic!"
-    )
-    val intro = introTexts.random()
-
-    val sb = StringBuilder()
-    sb.appendLine(intro)
-    sb.appendLine()
-    sb.appendLine("\uD83D\uDCCD $stationName \u2192 ${departure.nextStation}")
-    sb.appendLine("\uD83D\uDCC5 $dateString")
-    sb.appendLine("\uD83D\uDD50 ${departure.time} Uhr")
-    if (departure.journeyNumber.isNotEmpty()) {
-        sb.appendLine("\uD83D\uDEA2 Route ${departure.journeyNumber}")
-    }
-
-    weatherInfo?.let {
-        sb.appendLine("\uD83C\uDF21\uFE0F ${String.format("%.1f°C", it.temperature)}")
-    }
-
-    lakeEnvironmentData?.waterTemperature?.let { waterTemp ->
-        sb.appendLine("\uD83D\uDCA7 Water Temperature: ${String.format("%.1f°C", waterTemp)}")
-        val airTemp = weatherInfo?.temperature
-        val wetsuit = getWetsuitThickness(waterTemp, airTemp)
-        if (wetsuit != null) {
-            sb.appendLine("\uD83E\uDD38 Wetsuit: ${wetsuit}mm")
-        }
-    }
-
-    lakeEnvironmentData?.waterLevelDifference?.let { diff ->
-        sb.appendLine("\uD83D\uDCCA Water Level: $diff")
-    }
-
-    sb.appendLine()
-    sb.appendLine("\uD83D\uDCF1 Shared via NextWave App")
-    sb.append("\uD83D\uDD17 play.google.com/store/apps/details?id=com.lakeshorestudios.nextwave")
-
-    return sb.toString()
-}
 
 private fun getDepartureDateTime(timeString: String, selectedDate: Date): Date? {
     return try {

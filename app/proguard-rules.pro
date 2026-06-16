@@ -128,3 +128,21 @@
 
 # Coil
 -keep class coil.** { *; }
+
+# kotlinx.serialization
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault
+-keepclassmembers @kotlinx.serialization.Serializable class ** {
+    *** Companion;
+    *** INSTANCE;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keepclasseswithmembers class **$$serializer { *; }
+-if @kotlinx.serialization.Serializable class **
+-keepclassmembers class <1>$Companion {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Ktor / Supabase
+-dontwarn io.ktor.**
+-dontwarn io.github.jan.**
+-keepclassmembers class io.ktor.** { *; }
