@@ -10,7 +10,8 @@ data class Departure(
     val destination: String,    // Destination (e.g. "Küsnacht ZH")
     val status: DepartureStatus, // Status of the departure (missed, now, planned)
     val nextStation: String = "",  // Next station on the route
-    val shipName: String? = null   // Ship name (ZSG only, e.g. "MS Albis")
+    val shipName: String? = null,  // Ship name (ZSG only, e.g. "MS Albis")
+    val departureDateTime: java.util.Date = java.util.Date(0)  // Full UTC instant of departure
 )
 
 /**

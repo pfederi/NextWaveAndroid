@@ -28,6 +28,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private var _themeMode = mutableStateOf("system")
     val themeMode: String get() = _themeMode.value
 
+    // Wave Check-in settings
+    private var _enableWaveCheckIn = mutableStateOf(true)
+    val enableWaveCheckIn: Boolean get() = _enableWaveCheckIn.value
+
+    private var _checkinName = mutableStateOf("")
+    val checkinName: String get() = _checkinName.value
+
+    private var _checkinAnonymous = mutableStateOf(false)
+    val checkinAnonymous: Boolean get() = _checkinAnonymous.value
+
     init {
         loadSettings()
     }
@@ -40,6 +50,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _showWeatherInfo.value = sharedPreferences.getBoolean(KEY_SHOW_WEATHER_INFO, true)
         _showPromoTiles.value = sharedPreferences.getBoolean(KEY_SHOW_PROMO_TILES, true)
         _themeMode.value = sharedPreferences.getString(KEY_THEME_MODE, "system") ?: "system"
+        _enableWaveCheckIn.value = sharedPreferences.getBoolean(KEY_ENABLE_WAVE_CHECKIN, true)
+        _checkinName.value = sharedPreferences.getString(KEY_CHECKIN_NAME, "") ?: ""
+        _checkinAnonymous.value = sharedPreferences.getBoolean(KEY_CHECKIN_ANONYMOUS, false)
     }
     
     /**
@@ -82,10 +95,39 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun setEnableWaveCheckIn(enabled: Boolean) {
+        _enableWaveCheckIn.value = enabled
+        viewModelScope.launch {
+            sharedPreferences.edit().putBoolean(KEY_ENABLE_WAVE_CHECKIN, enabled).apply()
+        }
+    }
+
+    fun setCheckinIdentity(name: String, anonymous: Boolean) {
+        _checkinName.value = name
+        _checkinAnonymous.value = anonymous
+        viewModelScope.launch {
+            sharedPreferences.edit()
+                .putString(KEY_CHECKIN_NAME, name)
+                .putBoolean(KEY_CHECKIN_ANONYMOUS, anonymous)
+                .apply()
+        }
+    }
+
+    /** Display name to store on a check-in, or null for anonymous / unset. */
+    fun checkinDisplayName(): String? =
+        if (_checkinAnonymous.value) null else _checkinName.value.trim().ifEmpty { null }
+
+    /** True once the user has chosen a name OR opted into anonymous. */
+    fun hasCheckinIdentity(): Boolean =
+        _checkinAnonymous.value || _checkinName.value.trim().isNotEmpty()
+
     companion object {
         const val KEY_SHOW_NEAREST_STATION = "show_nearest_station"
         const val KEY_SHOW_WEATHER_INFO = "show_weather_info"
         const val KEY_SHOW_PROMO_TILES = "show_promo_tiles"
         const val KEY_THEME_MODE = "theme_mode"
+        const val KEY_ENABLE_WAVE_CHECKIN = "enable_wave_checkin"
+        const val KEY_CHECKIN_NAME = "checkin_name"
+        const val KEY_CHECKIN_ANONYMOUS = "checkin_anonymous"
     }
 } 

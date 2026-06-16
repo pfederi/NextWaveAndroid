@@ -58,6 +58,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lakeshorestudios.nextwave.data.models.Departure
 import com.lakeshorestudios.nextwave.data.models.DepartureStatus
 import com.lakeshorestudios.nextwave.data.models.WaveRating
+import com.lakeshorestudios.nextwave.data.models.WaveCheckin
+import com.lakeshorestudios.nextwave.data.models.WaveCheckinCount
+import com.lakeshorestudios.nextwave.data.utils.CalendarEventContent
+import com.lakeshorestudios.nextwave.data.utils.ShareTextBuilder
+import com.lakeshorestudios.nextwave.ui.checkin.CheckinStore
+import com.lakeshorestudios.nextwave.ui.components.ShareWaveSheet
+import com.lakeshorestudios.nextwave.ui.components.WaveCheckinBadge
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -96,10 +103,18 @@ import com.lakeshorestudios.nextwave.data.models.getWetsuitThickness
 fun DeparturesScreen(
     @Suppress("UNUSED_PARAMETER") stationId: String,
     onBackClick: () -> Unit,
-    viewModel: DeparturesViewModel = viewModel()
+    viewModel: DeparturesViewModel = viewModel(),
+    checkinStore: CheckinStore = viewModel(),
+    settingsViewModel: com.lakeshorestudios.nextwave.ui.settings.SettingsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+    val checkinCounts by checkinStore.counts.collectAsState()
+    val myCheckins by checkinStore.mine.collectAsState()
+    val checkinEnabled = settingsViewModel.enableWaveCheckIn
+
+    // A wave currently being shared (null when the sheet is closed).
+    var shareTarget by remember { mutableStateOf<Departure?>(null) }
+
     // Theme-aware colors
     val headerBackgroundColor = com.lakeshorestudios.nextwave.ui.theme.NextWaveColors.headerBackground
     val headerTextColor = com.lakeshorestudios.nextwave.ui.theme.NextWaveColors.headerText
@@ -221,7 +236,28 @@ fun DeparturesScreen(
                     val departuresWithWaveNumbers = uiState.departures.mapIndexed { index, departure ->
                         departure.copy(waveNumber = index + 1)
                     }
-                    
+
+                    // Single source of truth for each wave's cross-platform id (must match iOS).
+                    val station = uiState.station
+                    val waveIdByDeparture: Map<Departure, String> =
+                        if (checkinEnabled && station != null) {
+                            departuresWithWaveNumbers.associateWith { dep ->
+                                WaveCheckin.makeWaveId(
+                                    stationUicRef = station.id,
+                                    stationName = station.name,
+                                    departure = dep.departureDateTime,
+                                    routeNumber = dep.journeyNumber
+                                )
+                            }
+                        } else {
+                            emptyMap()
+                        }
+
+                    LaunchedEffect(waveIdByDeparture.values.toList()) {
+                        val ids = waveIdByDeparture.values.toList()
+                        if (ids.isNotEmpty()) checkinStore.refresh(ids)
+                    }
+
                     // Check if the selected date is the current day
                     val today = Calendar.getInstance()
                     val selectedDate = Calendar.getInstance().apply { time = uiState.selectedDate }
@@ -252,6 +288,7 @@ fun DeparturesScreen(
                             .padding(horizontal = 16.dp)
                     ) {
                         items(departuresWithWaveNumbers) { departure ->
+                            val waveId = waveIdByDeparture[departure]
                             DepartureItem(
                                 departure = departure,
                                 showStatus = isToday,
@@ -262,13 +299,57 @@ fun DeparturesScreen(
                                 selectedDate = uiState.selectedDate,
                                 lakeEnvironmentData = uiState.lakeEnvironmentData,
                                 isLoadingWeather = uiState.isLoadingWeather,
-                                stationName = uiState.station?.name ?: ""
+                                stationName = uiState.station?.name ?: "",
+                                checkinEnabled = checkinEnabled,
+                                checkinCount = waveId?.let { checkinCounts[it] },
+                                isMine = waveId != null && myCheckins.contains(waveId),
+                                onShareClick = { shareTarget = departure },
+                                onCheckinToggle = {
+                                    if (waveId != null && settingsViewModel.hasCheckinIdentity()) {
+                                        checkinStore.toggle(
+                                            waveId = waveId,
+                                            departureAt = departure.departureDateTime,
+                                            displayName = settingsViewModel.checkinDisplayName()
+                                        )
+                                    }
+                                }
                             )
                         }
                     }
                 }
             }
         }
+    }
+
+    shareTarget?.let { dep ->
+        val shareStation = uiState.station
+        val weather = uiState.weatherInfo[dep.time]
+        val windKnots = weather?.let { it.windSpeed * 1.94384 }
+        val windDir = weather?.let { getWindDirection(it.windDeg) }
+        val shareText = ShareTextBuilder.build(
+            stationName = shareStation?.name ?: "",
+            destinationName = dep.nextStation,
+            waveTime = dep.departureDateTime,
+            routeNumber = dep.journeyNumber,
+            shipName = dep.shipName,
+            airTemperature = weather?.temperature
+        )
+        val calendarContent = CalendarEventContent.make(
+            waveTimeMillis = dep.departureDateTime.time,
+            stationName = shareStation?.name,
+            destinationName = dep.nextStation,
+            latitude = shareStation?.latitude,
+            longitude = shareStation?.longitude,
+            shipName = dep.shipName,
+            airTemperature = weather?.temperature,
+            windKnots = windKnots,
+            windDirection = windDir
+        )
+        ShareWaveSheet(
+            shareText = shareText,
+            calendarContent = calendarContent,
+            onDismiss = { shareTarget = null }
+        )
     }
 }
 
@@ -425,7 +506,12 @@ fun DepartureItem(
     selectedDate: Date = Date(),
     lakeEnvironmentData: LakeEnvironmentData? = null,
     isLoadingWeather: Boolean = false,
-    stationName: String = ""
+    stationName: String = "",
+    checkinEnabled: Boolean = false,
+    checkinCount: WaveCheckinCount? = null,
+    isMine: Boolean = false,
+    onShareClick: () -> Unit = {},
+    onCheckinToggle: () -> Unit = {}
 ) {
     val currentTime = Calendar.getInstance()
     val departureTime = Calendar.getInstance()
@@ -545,31 +631,26 @@ fun DepartureItem(
                         )
                         Spacer(modifier = Modifier.weight(1f))
 
-                        // Share button (only for non-missed departures)
+                        // Wave check-in badge (how many foilers ride this wave)
+                        if (checkinEnabled) {
+                            WaveCheckinBadge(
+                                count = checkinCount?.count ?: 0,
+                                names = checkinCount?.names ?: emptyList(),
+                                isMine = isMine,
+                                onToggle = onCheckinToggle
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                        }
+
+                        // Share button (only for non-missed departures) -> opens the share/save sheet
                         if (departure.status != DepartureStatus.MISSED) {
-                            val context = LocalContext.current
                             Icon(
                                 imageVector = Lucide.Share2,
-                                contentDescription = "Share",
+                                contentDescription = "Share or save this wave",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
                                     .size(18.dp)
-                                    .clickable {
-                                        val shareText = generateShareText(
-                                            departure = departure,
-                                            selectedDate = selectedDate,
-                                            weatherInfo = weatherInfo,
-                                            lakeEnvironmentData = lakeEnvironmentData,
-                                            stationName = stationName
-                                        )
-                                        val intent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "text/plain"
-                                            putExtra(Intent.EXTRA_TEXT, shareText)
-                                        }
-                                        context.startActivity(
-                                            Intent.createChooser(intent, "Share Wave")
-                                        )
-                                    }
+                                    .clickable { onShareClick() }
                             )
                         }
                     }

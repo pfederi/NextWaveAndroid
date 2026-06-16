@@ -19,10 +19,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -30,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -189,6 +192,13 @@ fun SettingsScreen(
                     )
                     Divider(modifier = Modifier.padding(start = 56.dp))
                     SettingsToggle(
+                        icon = Icons.Filled.Group,
+                        title = "Show Wave Check-ins",
+                        checked = viewModel.enableWaveCheckIn,
+                        onCheckedChange = { viewModel.setEnableWaveCheckIn(it) }
+                    )
+                    Divider(modifier = Modifier.padding(start = 56.dp))
+                    SettingsToggle(
                         icon = Lucide.Image,
                         title = "Show Promo Tiles",
                         checked = viewModel.showPromoTiles,
@@ -216,6 +226,91 @@ fun SettingsScreen(
                             color = accentColor
                         )
                     }
+                }
+            }
+
+            if (viewModel.enableWaveCheckIn) {
+                var showIdentityDialog by remember { mutableStateOf(false) }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showIdentityDialog = true }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Check-in Name",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = when {
+                                viewModel.checkinAnonymous -> "Anonymous"
+                                viewModel.checkinName.isBlank() -> "Not set"
+                                else -> viewModel.checkinName
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                if (showIdentityDialog) {
+                    var nameInput by remember {
+                        mutableStateOf(viewModel.checkinName.ifEmpty { Build.MODEL ?: "" })
+                    }
+                    var anonInput by remember { mutableStateOf(viewModel.checkinAnonymous) }
+                    AlertDialog(
+                        onDismissRequest = { showIdentityDialog = false },
+                        title = { Text("How others see you") },
+                        text = {
+                            Column {
+                                OutlinedTextField(
+                                    value = nameInput,
+                                    onValueChange = { nameInput = it },
+                                    label = { Text("Your name") },
+                                    enabled = !anonInput,
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Switch(
+                                        checked = anonInput,
+                                        onCheckedChange = { anonInput = it }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Join anonymously")
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Your name is visible to other foilers on this wave. Choose anonymous to be counted without a name.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(
+                                enabled = anonInput || nameInput.trim().isNotEmpty(),
+                                onClick = {
+                                    viewModel.setCheckinIdentity(nameInput.trim(), anonInput)
+                                    showIdentityDialog = false
+                                }
+                            ) { Text("Save") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showIdentityDialog = false }) { Text("Cancel") }
+                        }
+                    )
                 }
             }
 

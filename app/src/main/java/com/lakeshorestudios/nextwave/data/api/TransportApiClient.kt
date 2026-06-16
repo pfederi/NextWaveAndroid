@@ -251,7 +251,8 @@ class TransportApiClient {
                     journeyNumber = journeyNumber, // Use the formatted journey number
                     destination = journey.to ?: "Unknown",
                     status = status,
-                    nextStation = nextStation
+                    nextStation = nextStation,
+                    departureDateTime = departureTime  // exact instant parsed above
                 )
             }
         } catch (e: Exception) {
