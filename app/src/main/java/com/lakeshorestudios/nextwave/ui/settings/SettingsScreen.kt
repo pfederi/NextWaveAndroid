@@ -264,52 +264,14 @@ fun SettingsScreen(
                 }
 
                 if (showIdentityDialog) {
-                    var nameInput by remember {
-                        mutableStateOf(viewModel.checkinName.ifEmpty { Build.MODEL ?: "" })
-                    }
-                    var anonInput by remember { mutableStateOf(viewModel.checkinAnonymous) }
-                    AlertDialog(
-                        onDismissRequest = { showIdentityDialog = false },
-                        title = { Text("How others see you") },
-                        text = {
-                            Column {
-                                OutlinedTextField(
-                                    value = nameInput,
-                                    onValueChange = { nameInput = it },
-                                    label = { Text("Your name") },
-                                    enabled = !anonInput,
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Switch(
-                                        checked = anonInput,
-                                        onCheckedChange = { anonInput = it }
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Join anonymously")
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Your name is visible to other foilers on this wave. Choose anonymous to be counted without a name.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
-                                )
-                            }
+                    com.lakeshorestudios.nextwave.ui.components.CheckinIdentityDialog(
+                        initialName = viewModel.checkinName.ifEmpty { Build.MODEL ?: "" },
+                        initialAnonymous = viewModel.checkinAnonymous,
+                        onSave = { name, anonymous ->
+                            viewModel.setCheckinIdentity(name, anonymous)
+                            showIdentityDialog = false
                         },
-                        confirmButton = {
-                            TextButton(
-                                enabled = anonInput || nameInput.trim().isNotEmpty(),
-                                onClick = {
-                                    viewModel.setCheckinIdentity(nameInput.trim(), anonInput)
-                                    showIdentityDialog = false
-                                }
-                            ) { Text("Save") }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showIdentityDialog = false }) { Text("Cancel") }
-                        }
+                        onDismiss = { showIdentityDialog = false }
                     )
                 }
             }

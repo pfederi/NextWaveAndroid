@@ -113,6 +113,9 @@ fun DeparturesScreen(
     // A wave currently being shared (null when the sheet is closed).
     var shareTarget by remember { mutableStateOf<Departure?>(null) }
 
+    // A check-in awaiting an identity on first use: (waveId, departure instant).
+    var checkinIdentityPrompt by remember { mutableStateOf<Pair<String, Date>?>(null) }
+
     // Theme-aware colors
     val headerBackgroundColor = com.lakeshorestudios.nextwave.ui.theme.NextWaveColors.headerBackground
     val headerTextColor = com.lakeshorestudios.nextwave.ui.theme.NextWaveColors.headerText
@@ -303,12 +306,18 @@ fun DeparturesScreen(
                                 isMine = waveId != null && myCheckins.contains(waveId),
                                 onShareClick = { shareTarget = departure },
                                 onCheckinToggle = {
-                                    if (waveId != null && settingsViewModel.hasCheckinIdentity()) {
-                                        checkinStore.toggle(
-                                            waveId = waveId,
-                                            departureAt = departure.departureDateTime,
-                                            displayName = settingsViewModel.checkinDisplayName()
-                                        )
+                                    if (waveId != null) {
+                                        if (settingsViewModel.hasCheckinIdentity()) {
+                                            checkinStore.toggle(
+                                                waveId = waveId,
+                                                departureAt = departure.departureDateTime,
+                                                displayName = settingsViewModel.checkinDisplayName()
+                                            )
+                                        } else {
+                                            // First check-in without an identity yet:
+                                            // let the user set/change their name, then check in.
+                                            checkinIdentityPrompt = waveId to departure.departureDateTime
+                                        }
                                     }
                                 }
                             )
@@ -347,6 +356,24 @@ fun DeparturesScreen(
             shareText = shareText,
             calendarContent = calendarContent,
             onDismiss = { shareTarget = null }
+        )
+    }
+
+    // First check-in without an identity: prompt for the name, then perform the check-in.
+    checkinIdentityPrompt?.let { (promptWaveId, departureAt) ->
+        com.lakeshorestudios.nextwave.ui.components.CheckinIdentityDialog(
+            initialName = settingsViewModel.checkinName.ifEmpty { android.os.Build.MODEL ?: "" },
+            initialAnonymous = settingsViewModel.checkinAnonymous,
+            onSave = { name, anonymous ->
+                settingsViewModel.setCheckinIdentity(name, anonymous)
+                checkinStore.toggle(
+                    waveId = promptWaveId,
+                    departureAt = departureAt,
+                    displayName = settingsViewModel.checkinDisplayName()
+                )
+                checkinIdentityPrompt = null
+            },
+            onDismiss = { checkinIdentityPrompt = null }
         )
     }
 }
