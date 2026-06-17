@@ -146,3 +146,6 @@
 -dontwarn io.ktor.**
 -dontwarn io.github.jan.**
 -keepclassmembers class io.ktor.** { *; }
+
+# slf4j (optional logging binder pulled in transitively by Ktor/Supabase; safe to ignore)
+-dontwarn org.slf4j.**
