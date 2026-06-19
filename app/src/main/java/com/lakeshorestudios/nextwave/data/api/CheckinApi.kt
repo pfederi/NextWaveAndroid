@@ -1,6 +1,7 @@
 package com.lakeshorestudios.nextwave.data.api
 
 import com.lakeshorestudios.nextwave.data.models.WaveCheckinCount
+import com.lakeshorestudios.nextwave.ui.checkin.CheckinContext
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.rpc
@@ -18,7 +19,17 @@ object CheckinApi {
         @SerialName("wave_id") val waveId: String,
         @SerialName("user_id") val userId: String,
         @SerialName("display_name") val displayName: String?,
-        @SerialName("departure_at") val departureAt: String
+        @SerialName("departure_at") val departureAt: String,
+        @SerialName("station_id") val stationId: String,
+        @SerialName("lake_id") val lakeId: String,
+        @SerialName("is_first_of_day") val isFirstOfDay: Boolean,
+        @SerialName("is_last_of_day") val isLastOfDay: Boolean
+    )
+
+    @Serializable
+    private data class ProfileRow(
+        @SerialName("user_id") val userId: String,
+        @SerialName("display_name") val displayName: String?
     )
 
     @Serializable
@@ -33,16 +44,33 @@ object CheckinApi {
         }
 
     /** Upsert so re-tapping with a new name updates the row. */
-    suspend fun checkIn(waveId: String, displayName: String?, departureAt: Date) {
+    suspend fun checkIn(waveId: String, displayName: String?, departureAt: Date, context: CheckinContext) {
         val userId = SupabaseManager.ensureSession()
         val row = CheckinRow(
             waveId = waveId,
             userId = userId,
             displayName = displayName,
-            departureAt = iso.format(departureAt)
+            departureAt = iso.format(departureAt),
+            stationId = context.stationId,
+            lakeId = context.lakeId,
+            isFirstOfDay = context.isFirstOfDay,
+            isLastOfDay = context.isLastOfDay
         )
         SupabaseManager.client.postgrest["wave_checkins"]
             .upsert(row, onConflict = "wave_id,user_id")
+
+        // Persist the latest non-anonymous name for the leaderboard.
+        if (displayName != null) {
+            SupabaseManager.client.postgrest["user_profiles"]
+                .upsert(ProfileRow(userId = userId, displayName = displayName), onConflict = "user_id")
+        }
+    }
+
+    /** Sync the leaderboard display name (or clear it with null) without a check-in. */
+    suspend fun syncProfileName(displayName: String?) {
+        val userId = SupabaseManager.ensureSession()
+        SupabaseManager.client.postgrest["user_profiles"]
+            .upsert(ProfileRow(userId = userId, displayName = displayName), onConflict = "user_id")
     }
 
     suspend fun checkOut(waveId: String) {
