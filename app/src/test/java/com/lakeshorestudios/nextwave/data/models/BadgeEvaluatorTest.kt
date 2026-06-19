@@ -53,8 +53,8 @@ class BadgeEvaluatorTest {
     }
 
     @Test
-    fun catalogHasExactlyTwentyEightBadges() {
-        assertEquals(28, BadgeCatalog.all.size)
+    fun catalogHasExactlyThirtyFourBadges() {
+        assertEquals(34, BadgeCatalog.all.size)
     }
 
     @Test

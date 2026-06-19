@@ -55,7 +55,9 @@ object BadgeCatalog {
         Badge("regular_10", "Regular", "10 at one station", BadgeCategory.LOYALTY, 10) { it.maxWavesOneStation },
         Badge("regular_25", "Local Legend", "25 at one station", BadgeCategory.LOYALTY, 25) { it.maxWavesOneStation },
         // First / last ship of the day
+        Badge("first_ship_1", "First Ship", "First ship of day", BadgeCategory.FIRST_SHIP, 1) { it.firstOfDayCount },
         Badge("first_ship_10", "Dawn Patrol", "First ship x10", BadgeCategory.FIRST_SHIP, 10) { it.firstOfDayCount },
+        Badge("last_ship_1", "Last Ship", "Last ship of day", BadgeCategory.LAST_SHIP, 1) { it.lastOfDayCount },
         Badge("last_ship_10", "Closing Time", "Last ship x10", BadgeCategory.LAST_SHIP, 10) { it.lastOfDayCount },
         // Time of day
         Badge("early_bird", "Early Bird", "Before 08:00", BadgeCategory.TIME_OF_DAY, 1) { it.earlyBirdCount },
@@ -64,6 +66,8 @@ object BadgeCatalog {
         // Weekend
         Badge("weekend_warrior", "Weekend Warrior", "10 on weekends", BadgeCategory.WEEKEND, 10) { it.weekendCount },
         // Seasons
+        season("spring", "Spring"), season("summer", "Summer"),
+        season("autumn", "Autumn"), season("winter", "Winter"),
         Badge("four_seasons", "Four Seasons", "All four seasons", BadgeCategory.SEASONS, 4) { it.seasonsRidden.size },
         // Same day
         Badge("double", "Double", "2 in one day", BadgeCategory.SAME_DAY, 2) { it.maxWavesOneDay },
