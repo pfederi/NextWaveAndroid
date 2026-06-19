@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LocationOn
@@ -102,6 +103,7 @@ import com.lakeshorestudios.nextwave.data.models.getWetsuitThickness
 fun DeparturesScreen(
     @Suppress("UNUSED_PARAMETER") stationId: String,
     onBackClick: () -> Unit,
+    onLeaderboardClick: (String) -> Unit,
     viewModel: DeparturesViewModel = viewModel(),
     checkinStore: CheckinStore = viewModel(),
     settingsViewModel: com.lakeshorestudios.nextwave.ui.settings.SettingsViewModel = viewModel()
@@ -163,13 +165,19 @@ fun DeparturesScreen(
                     }
                 },
                 actions = {
+                    // Per-station leaderboard
+                    IconButton(
+                        onClick = { uiState.station?.let { onLeaderboardClick(it.id) } }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.EmojiEvents,
+                            contentDescription = "Station leaderboard",
+                            tint = headerTextColor
+                        )
+                    }
                     // Favorite icon
                     IconButton(
-                        onClick = { 
-                            uiState.station?.let { station ->
-                                viewModel.toggleFavorite(station)
-                            }
-                        }
+                        onClick = { uiState.station?.let { station -> viewModel.toggleFavorite(station) } }
                     ) {
                         Icon(
                             imageVector = if (uiState.isFavorite) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,

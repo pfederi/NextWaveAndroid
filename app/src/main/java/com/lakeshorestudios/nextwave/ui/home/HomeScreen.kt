@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.NearMe
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.Water
@@ -82,6 +83,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowUp
 @Composable
 fun HomeScreen(
     onSettingsClick: () -> Unit,
+    onBadgesClick: () -> Unit,
     onStationSelected: (Station) -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
@@ -128,6 +130,13 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("NextWave", color = headerTextColor) },
                 actions = {
+                    IconButton(onClick = onBadgesClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.EmojiEvents,
+                            contentDescription = "My Badges",
+                            tint = headerTextColor
+                        )
+                    }
                     IconButton(onClick = { showNavigationRules = true }) {
                         Icon(
                             imageVector = Lucide.ShieldAlert,
