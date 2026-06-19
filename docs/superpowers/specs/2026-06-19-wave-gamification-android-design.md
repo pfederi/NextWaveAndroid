@@ -94,7 +94,7 @@ Mirror iOS `CheckinAPI.swift`.
 |---|---|
 | `ui/stats/StatsScreen.kt` | `Views/StatsView.swift` — hero total, badge gallery (earned in color, locked greyed with `current/target`, tap → title+detail), own rank with link to full leaderboard, newly-earned celebration highlight, retry state on `loadFailed`. |
 | `ui/stats/LeaderboardScreen.kt` | `Views/LeaderboardView.swift` — reused for global (`stationId == null`) and per-station; top-N named users; caller's own row always rendered and highlighted (`isMe`). |
-| `ui/components/BadgeMedal.kt` | `Views/BadgeMedalView.swift` — single earned/locked badge cell used in the gallery grid. |
+| `ui/components/BadgeMedal.kt` | `Views/BadgeMedalView.swift` — single **circular** earned/locked badge medallion used in the gallery grid (see "Badge medallion rendering"). |
 
 **Entry points**
 - **Home top bar** (`HomeScreen`): new trophy/rosette `IconButton` → navigate to `stats`.
@@ -111,8 +111,10 @@ Mirror iOS `CheckinAPI.swift`.
 
 Use the 18 illustrated PNGs in `~/Downloads/badges/Variante=*.png`. **Exclude** the 4
 `verified-*.png`. Import into `app/src/main/res/` (convert to WebP and downscale to a sane
-display size — the source PNGs are 200–740 KB each, far larger than needed — target a
-square gallery cell). Suggested resource naming: `badge_<variant>` (e.g. `badge_milestone`).
+display size — the source PNGs are 200–740 KB each, far larger than needed). Suggested
+resource naming: `badge_<variant>` (e.g. `badge_milestone`). The source images are roughly
+square; they are **not** displayed as squares — they are clipped into a circle at render time
+(see "Badge medallion rendering"), so no manual circular cropping is needed.
 
 Image → badge mapping (badges within a category/variant share one image; they differ by
 title, threshold, and progress):
@@ -137,6 +139,34 @@ title, threshold, and progress):
 
 The Kotlin `Badge` model carries the drawable resource id (e.g. `@DrawableRes val image: Int`)
 instead of the iOS `systemImage` string.
+
+### Badge medallion rendering (`BadgeMedal.kt`)
+
+Match the iOS Untappd-style **circular** medallion (`BadgeMedalView.swift`) — never a square
+tile. A `Box` (square `size`, default ~96.dp) stacking, back to front:
+
+1. **Category ring** — a filled `Circle` (full size) in the badge's category color.
+2. **Cream rim** — a filled `Circle` in cream `#F3E6C9`, inset by `size * 0.045`.
+3. **Illustration** — `Image(painterResource(badge.image))` with `ContentScale.Crop`,
+   `Modifier.clip(CircleShape)`, inset by `size * 0.075`. When **locked**, render greyscale
+   (a `ColorMatrix` with saturation `0` via `ColorFilter.colorMatrix`).
+4. **Locked overlay** (only when not earned) — a white circle (`alpha ≈ 0.72`, ~`0.44 * size`)
+   with a centered lock icon (`Icons.Filled.Lock`).
+
+Add a subtle drop shadow on the outer circle. The medallion renders **only the graphic** — no
+title/caption (those are drawn by the gallery cell around it, with progress text below).
+
+Category ring colors (hex, identical to iOS `BadgeCategory.ringColor`):
+
+| Category | Color | Category | Color |
+|---|---|---|---|
+| milestone | `#1E88E5` | weekend | `#EC407A` |
+| stations | `#26A69A` | seasons | `#00897B` |
+| lakes | `#43A047` | sameDay | `#00ACC1` |
+| loyalty | `#FB8C00` | anniversary | `#F9A825` |
+| firstShip | `#FF7043` | social | `#E53935` |
+| lastShip | `#8E24AA` | streak | `#F4511E` |
+| timeOfDay | `#5C6BC0` | | |
 
 ## Data flow
 
