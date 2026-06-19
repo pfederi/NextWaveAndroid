@@ -61,6 +61,7 @@ import com.lakeshorestudios.nextwave.data.models.WaveCheckin
 import com.lakeshorestudios.nextwave.data.models.WaveCheckinCount
 import com.lakeshorestudios.nextwave.data.utils.CalendarEventContent
 import com.lakeshorestudios.nextwave.data.utils.ShareTextBuilder
+import com.lakeshorestudios.nextwave.ui.checkin.CheckinContext
 import com.lakeshorestudios.nextwave.ui.checkin.CheckinStore
 import com.lakeshorestudios.nextwave.ui.components.ShareWaveSheet
 import com.lakeshorestudios.nextwave.ui.components.WaveCheckinBadge
@@ -254,6 +255,26 @@ fun DeparturesScreen(
                             emptyMap()
                         }
 
+                    // Full-day departure instants for first/last-of-day flags.
+                    val dayDepartureTimes: List<Date> =
+                        departuresWithWaveNumbers.map { it.departureDateTime }
+
+                    fun checkinContextFor(dep: Departure): CheckinContext? {
+                        val st = station ?: return null
+                        val lakeId = st.lake.ifBlank { "unknown" }
+                        // Only trust first/last-of-day when the day's schedule actually contains
+                        // this departure; otherwise don't award the flag.
+                        val dayLoaded = dayDepartureTimes.any { it.time == dep.departureDateTime.time }
+                        return CheckinContext(
+                            stationId = st.id,
+                            lakeId = lakeId,
+                            isFirstOfDay = dayLoaded &&
+                                WaveCheckin.isFirstOfDay(dep.departureDateTime, dayDepartureTimes),
+                            isLastOfDay = dayLoaded &&
+                                WaveCheckin.isLastOfDay(dep.departureDateTime, dayDepartureTimes)
+                        )
+                    }
+
                     LaunchedEffect(waveIdByDeparture.values.toList()) {
                         val ids = waveIdByDeparture.values.toList()
                         if (ids.isNotEmpty()) checkinStore.refresh(ids)
@@ -307,16 +328,18 @@ fun DeparturesScreen(
                                 onShareClick = { shareTarget = departure },
                                 onCheckinToggle = {
                                     if (waveId != null) {
-                                        if (settingsViewModel.hasCheckinIdentity()) {
-                                            checkinStore.toggle(
-                                                waveId = waveId,
-                                                departureAt = departure.departureDateTime,
-                                                displayName = settingsViewModel.checkinDisplayName()
-                                            )
-                                        } else {
-                                            // First check-in without an identity yet:
-                                            // let the user set/change their name, then check in.
-                                            checkinIdentityPrompt = waveId to departure.departureDateTime
+                                        val ctx = checkinContextFor(departure)
+                                        if (ctx != null) {
+                                            if (settingsViewModel.hasCheckinIdentity()) {
+                                                checkinStore.toggle(
+                                                    waveId = waveId,
+                                                    departureAt = departure.departureDateTime,
+                                                    displayName = settingsViewModel.checkinDisplayName(),
+                                                    context = ctx
+                                                )
+                                            } else {
+                                                checkinIdentityPrompt = waveId to departure.departureDateTime
+                                            }
                                         }
                                     }
                                 }
@@ -366,11 +389,23 @@ fun DeparturesScreen(
             initialAnonymous = settingsViewModel.checkinAnonymous,
             onSave = { name, anonymous ->
                 settingsViewModel.setCheckinIdentity(name, anonymous)
-                checkinStore.toggle(
-                    waveId = promptWaveId,
-                    departureAt = departureAt,
-                    displayName = settingsViewModel.checkinDisplayName()
-                )
+                val st = uiState.station
+                if (st != null) {
+                    val dayTimes = uiState.departures.map { it.departureDateTime }
+                    val dayLoaded = dayTimes.any { it.time == departureAt.time }
+                    val ctx = CheckinContext(
+                        stationId = st.id,
+                        lakeId = st.lake.ifBlank { "unknown" },
+                        isFirstOfDay = dayLoaded && WaveCheckin.isFirstOfDay(departureAt, dayTimes),
+                        isLastOfDay = dayLoaded && WaveCheckin.isLastOfDay(departureAt, dayTimes)
+                    )
+                    checkinStore.toggle(
+                        waveId = promptWaveId,
+                        departureAt = departureAt,
+                        displayName = settingsViewModel.checkinDisplayName(),
+                        context = ctx
+                    )
+                }
                 checkinIdentityPrompt = null
             },
             onDismiss = { checkinIdentityPrompt = null }

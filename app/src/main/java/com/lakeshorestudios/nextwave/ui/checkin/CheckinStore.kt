@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lakeshorestudios.nextwave.data.api.CheckinApi
 import com.lakeshorestudios.nextwave.data.api.SupabaseManager
+import com.lakeshorestudios.nextwave.ui.checkin.CheckinContext
 import com.lakeshorestudios.nextwave.data.models.WaveCheckinCount
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.RealtimeChannel
@@ -89,13 +90,13 @@ class CheckinStore : ViewModel() {
         }
     }
 
-    fun toggle(waveId: String, departureAt: Date, displayName: String?) {
+    fun toggle(waveId: String, departureAt: Date, displayName: String?, context: CheckinContext) {
         viewModelScope.launch {
             try {
                 if (_mine.value.contains(waveId)) {
                     CheckinApi.checkOut(waveId)
                 } else {
-                    CheckinApi.checkIn(waveId, displayName, departureAt)
+                    CheckinApi.checkIn(waveId, displayName, departureAt, context)
                 }
                 reloadCounts()
                 _mine.value = CheckinApi.myCheckins(visibleWaveIds)
