@@ -1,7 +1,9 @@
 package com.lakeshorestudios.nextwave.ui.stats
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,16 +21,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lakeshorestudios.nextwave.data.models.LeaderboardEntry
@@ -70,20 +75,34 @@ fun LeaderboardScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when {
-                loadFailed -> Text(
-                    "Couldn't load the leaderboard. Pull to retry.",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp)
-                )
+                loadFailed -> Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Couldn't load the leaderboard.",
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                    TextButton(onClick = { viewModel.loadLeaderboard(stationId) }) {
+                        Text("Retry")
+                    }
+                }
                 leaderboard.isEmpty() -> Text(
                     "No rides recorded yet — be the first! 🌊",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp)
                 )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
-                ) {
-                    items(leaderboard.sortedBy { it.rank }) { entry -> LeaderboardRow(entry) }
+                else -> {
+                    val sorted = remember(leaderboard) { leaderboard.sortedBy { it.rank } }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
+                    ) {
+                        items(sorted) { entry -> LeaderboardRow(entry) }
+                    }
                 }
             }
         }

@@ -1,7 +1,7 @@
 package com.lakeshorestudios.nextwave.ui.components
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -19,17 +19,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.background
+import coil.compose.AsyncImage
 import com.lakeshorestudios.nextwave.R
 import com.lakeshorestudios.nextwave.data.models.Badge
 import com.lakeshorestudios.nextwave.data.models.BadgeCatalog
 import com.lakeshorestudios.nextwave.data.models.BadgeCategory
 
 private val Cream = Color(0xFFF3E6C9)
+private val GrayscaleFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
 
 /** Untappd-style circular badge medallion. Renders only the graphic — no title/caption. */
 @Composable
@@ -39,7 +39,6 @@ fun BadgeMedal(
     size: Dp = 96.dp,
     modifier: Modifier = Modifier
 ) {
-    val grayscale = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
     Box(
         modifier = modifier
             .size(size)
@@ -62,11 +61,11 @@ fun BadgeMedal(
                 .background(Cream)
         )
         // Illustration (greyscale when locked)
-        Image(
-            painter = painterResource(badgeDrawable(badge)),
+        AsyncImage(
+            model = badgeDrawable(badge),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            colorFilter = if (isEarned) null else grayscale,
+            colorFilter = if (isEarned) null else GrayscaleFilter,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(size * 0.075f)

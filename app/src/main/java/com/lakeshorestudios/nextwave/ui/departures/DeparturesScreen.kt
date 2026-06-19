@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lakeshorestudios.nextwave.data.models.Departure
 import com.lakeshorestudios.nextwave.data.models.DepartureStatus
+import com.lakeshorestudios.nextwave.data.models.Station
 import com.lakeshorestudios.nextwave.data.models.WaveRating
 import com.lakeshorestudios.nextwave.data.models.WaveCheckin
 import com.lakeshorestudios.nextwave.data.models.WaveCheckinCount
@@ -269,18 +270,7 @@ fun DeparturesScreen(
 
                     fun checkinContextFor(dep: Departure): CheckinContext? {
                         val st = station ?: return null
-                        val lakeId = st.lake.ifBlank { "unknown" }
-                        // Only trust first/last-of-day when the day's schedule actually contains
-                        // this departure; otherwise don't award the flag.
-                        val dayLoaded = dayDepartureTimes.any { it.time == dep.departureDateTime.time }
-                        return CheckinContext(
-                            stationId = st.id,
-                            lakeId = lakeId,
-                            isFirstOfDay = dayLoaded &&
-                                WaveCheckin.isFirstOfDay(dep.departureDateTime, dayDepartureTimes),
-                            isLastOfDay = dayLoaded &&
-                                WaveCheckin.isLastOfDay(dep.departureDateTime, dayDepartureTimes)
-                        )
+                        return buildCheckinContext(dep.departureDateTime, st, dayDepartureTimes)
                     }
 
                     LaunchedEffect(waveIdByDeparture.values.toList()) {
@@ -400,13 +390,7 @@ fun DeparturesScreen(
                 val st = uiState.station
                 if (st != null) {
                     val dayTimes = uiState.departures.map { it.departureDateTime }
-                    val dayLoaded = dayTimes.any { it.time == departureAt.time }
-                    val ctx = CheckinContext(
-                        stationId = st.id,
-                        lakeId = st.lake.ifBlank { "unknown" },
-                        isFirstOfDay = dayLoaded && WaveCheckin.isFirstOfDay(departureAt, dayTimes),
-                        isLastOfDay = dayLoaded && WaveCheckin.isLastOfDay(departureAt, dayTimes)
-                    )
+                    val ctx = buildCheckinContext(departureAt, st, dayTimes)
                     checkinStore.toggle(
                         waveId = promptWaveId,
                         departureAt = departureAt,
@@ -944,6 +928,21 @@ fun DepartureItem(
             }
         }
     }
+}
+
+private fun buildCheckinContext(
+    departureAt: java.util.Date,
+    station: Station,
+    dayTimes: List<java.util.Date>
+): CheckinContext {
+    val lakeId = station.lake.ifBlank { "unknown" }
+    val dayLoaded = dayTimes.any { it.time == departureAt.time }
+    return CheckinContext(
+        stationId = station.id,
+        lakeId = lakeId,
+        isFirstOfDay = dayLoaded && WaveCheckin.isFirstOfDay(departureAt, dayTimes),
+        isLastOfDay = dayLoaded && WaveCheckin.isLastOfDay(departureAt, dayTimes)
+    )
 }
 
 /**

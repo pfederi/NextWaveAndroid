@@ -3,6 +3,7 @@ package com.lakeshorestudios.nextwave.ui.stats
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,6 +53,7 @@ fun StatsScreen(
     val badges by viewModel.badges.collectAsState()
     val leaderboard by viewModel.leaderboard.collectAsState()
     val newlyEarned by viewModel.newlyEarned.collectAsState()
+    val loadFailed by viewModel.loadFailed.collectAsState()
 
     val headerBackgroundColor = com.lakeshorestudios.nextwave.ui.theme.NextWaveColors.headerBackground
     val headerTextColor = com.lakeshorestudios.nextwave.ui.theme.NextWaveColors.headerText
@@ -76,6 +79,31 @@ fun StatsScreen(
         },
         containerColor = mainBackgroundColor
     ) { padding ->
+        if (loadFailed && stats == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Couldn't load your stats.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Button(onClick = { viewModel.refresh() }) {
+                        Text("Retry")
+                    }
+                }
+            }
+            return@Scaffold
+        }
+
         val earned = badges.filter { it.isEarned }
         val locked = badges.filter { !it.isEarned }
 
@@ -158,11 +186,11 @@ fun StatsScreen(
 
             if (earned.isNotEmpty()) {
                 fullRow { SectionHeader("Earned (${earned.size})") }
-                items(earned) { BadgeCell(it) }
+                items(earned, key = { it.badge.id }) { BadgeCell(it) }
             }
             if (locked.isNotEmpty()) {
                 fullRow { SectionHeader("Locked (${locked.size})") }
-                items(locked) { BadgeCell(it) }
+                items(locked, key = { it.badge.id }) { BadgeCell(it) }
             }
 
             fullRow { Spacer(Modifier.height(24.dp)) }

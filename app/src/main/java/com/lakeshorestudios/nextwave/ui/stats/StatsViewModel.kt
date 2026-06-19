@@ -12,6 +12,8 @@ import com.lakeshorestudios.nextwave.data.models.EvaluatedBadge
 import com.lakeshorestudios.nextwave.data.models.LeaderboardEntry
 import com.lakeshorestudios.nextwave.data.models.StationWaveCount
 import com.lakeshorestudios.nextwave.data.models.WaveStats
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,25 +45,41 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     fun refresh() {
         viewModelScope.launch {
             _loadFailed.value = false
-            try {
-                val fetched = StatsApi.stats()
-                _stats.value = fetched
-                val evaluated = BadgeEvaluator.evaluate(fetched)
-                _badges.value = evaluated
-                val seen = seenBadgeIds()
-                _newlyEarned.value = BadgeEvaluator.newlyEarned(fetched, seen)
-                val earnedNow = evaluated.filter { it.isEarned }.map { it.badge.id }.toSet()
-                saveSeenBadgeIds(seen + earnedNow)
-                _leaderboard.value = StatsApi.leaderboard(stationId = null)
-            } catch (e: Exception) {
-                Log.w("StatsViewModel", "stats refresh failed: ${e.message}")
-                _loadFailed.value = true
-            }
-            // Independent: a failure here must not break badges/leaderboard.
-            try {
-                _stationCounts.value = StatsApi.stationCounts()
-            } catch (e: Exception) {
-                Log.w("StatsViewModel", "station counts failed: ${e.message}")
+            coroutineScope {
+                val statsDeferred = async { runCatching { StatsApi.stats() } }
+                val leaderboardDeferred = async { runCatching { StatsApi.leaderboard(stationId = null) } }
+                val stationCountsDeferred = async { runCatching { StatsApi.stationCounts() } }
+
+                val statsResult = statsDeferred.await()
+                val leaderboardResult = leaderboardDeferred.await()
+                val stationCountsResult = stationCountsDeferred.await()
+
+                statsResult.onSuccess { fetched ->
+                    _stats.value = fetched
+                    val evaluated = BadgeEvaluator.evaluate(fetched)
+                    _badges.value = evaluated
+                    val seen = seenBadgeIds()
+                    _newlyEarned.value = BadgeEvaluator.newlyEarned(fetched, seen)
+                    val earnedNow = evaluated.filter { it.isEarned }.map { it.badge.id }.toSet()
+                    saveSeenBadgeIds(seen + earnedNow)
+                }.onFailure { e ->
+                    Log.w("StatsViewModel", "stats refresh failed: ${e.message}")
+                    _loadFailed.value = true
+                }
+
+                leaderboardResult.onSuccess { entries ->
+                    _leaderboard.value = entries
+                }.onFailure { e ->
+                    Log.w("StatsViewModel", "leaderboard refresh failed: ${e.message}")
+                    _loadFailed.value = true
+                }
+
+                // Independent: a failure here must not set loadFailed.
+                stationCountsResult.onSuccess { counts ->
+                    _stationCounts.value = counts
+                }.onFailure { e ->
+                    Log.w("StatsViewModel", "station counts failed: ${e.message}")
+                }
             }
         }
     }
