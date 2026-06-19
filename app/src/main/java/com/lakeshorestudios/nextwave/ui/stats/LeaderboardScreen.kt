@@ -1,7 +1,6 @@
 package com.lakeshorestudios.nextwave.ui.stats
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -108,7 +107,7 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
             modifier = Modifier.width(48.dp)
         )
         Text(
-            text = entry.displayName,
+            text = entry.displayName ?: "Anonymous",
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (entry.isMe) FontWeight.Bold else FontWeight.Normal
         )

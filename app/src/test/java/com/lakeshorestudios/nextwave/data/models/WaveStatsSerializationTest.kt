@@ -39,6 +39,14 @@ class WaveStatsSerializationTest {
     }
 
     @Test
+    fun decodesLeaderboardEntryWithNullDisplayName() {
+        val raw = """{"rank":1,"display_name":null,"total_waves":3,"is_me":true}"""
+        val e = json.decodeFromString(LeaderboardEntry.serializer(), raw)
+        assertEquals(null, e.displayName)
+        assertEquals(true, e.isMe)
+    }
+
+    @Test
     fun emptyStatsAreAllZero() {
         assertEquals(0, WaveStats.empty.totalWaves)
         assertEquals(false, WaveStats.empty.hasAnniversary)

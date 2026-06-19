@@ -47,7 +47,7 @@ data class StationWaveCount(
 @Serializable
 data class LeaderboardEntry(
     @SerialName("rank") val rank: Int,
-    @SerialName("display_name") val displayName: String,
+    @SerialName("display_name") val displayName: String? = null,
     @SerialName("total_waves") val totalWaves: Int,
     @SerialName("is_me") val isMe: Boolean
 )

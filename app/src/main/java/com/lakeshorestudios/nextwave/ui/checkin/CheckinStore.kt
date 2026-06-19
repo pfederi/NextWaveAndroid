@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lakeshorestudios.nextwave.data.api.CheckinApi
 import com.lakeshorestudios.nextwave.data.api.SupabaseManager
-import com.lakeshorestudios.nextwave.ui.checkin.CheckinContext
 import com.lakeshorestudios.nextwave.data.models.WaveCheckinCount
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.RealtimeChannel
