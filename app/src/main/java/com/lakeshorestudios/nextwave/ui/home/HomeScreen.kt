@@ -130,18 +130,18 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("NextWave", color = headerTextColor) },
                 actions = {
-                    IconButton(onClick = onBadgesClick) {
-                        Icon(
-                            imageVector = Icons.Outlined.EmojiEvents,
-                            contentDescription = "My Badges",
-                            tint = headerTextColor
-                        )
-                    }
                     IconButton(onClick = { showNavigationRules = true }) {
                         Icon(
                             imageVector = Lucide.ShieldAlert,
                             contentDescription = "Wakethieving Rules",
                             tint = Color(0xFFE65100)
+                        )
+                    }
+                    IconButton(onClick = onBadgesClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.EmojiEvents,
+                            contentDescription = "My Badges",
+                            tint = headerTextColor
                         )
                     }
                     IconButton(onClick = onSettingsClick) {
@@ -227,15 +227,25 @@ fun HomeContent(
         item(key = "header") {
             Spacer(modifier = Modifier.height(24.dp))
             
-            Text(
-                text = "Ahoy Wakethief 🏴‍☠️",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
+            ) {
+                Text(
+                    text = "Ready to ride?",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Outlined.Water,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
             Text(
-                text = "Select a station to catch some waves!",
+                text = "Pick a station to catch the next wave.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 32.dp)
