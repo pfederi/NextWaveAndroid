@@ -89,13 +89,13 @@ class CheckinStore : ViewModel() {
         }
     }
 
-    fun toggle(waveId: String, departureAt: Date, displayName: String?) {
+    fun toggle(waveId: String, departureAt: Date, displayName: String?, context: CheckinContext) {
         viewModelScope.launch {
             try {
                 if (_mine.value.contains(waveId)) {
                     CheckinApi.checkOut(waveId)
                 } else {
-                    CheckinApi.checkIn(waveId, displayName, departureAt)
+                    CheckinApi.checkIn(waveId, displayName, departureAt, context)
                 }
                 reloadCounts()
                 _mine.value = CheckinApi.myCheckins(visibleWaveIds)

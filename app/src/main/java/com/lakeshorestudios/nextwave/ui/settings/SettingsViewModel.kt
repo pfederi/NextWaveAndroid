@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import com.lakeshorestudios.nextwave.data.api.CheckinApi
 
 /**
  * ViewModel for the settings screen
@@ -110,6 +111,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 .putString(KEY_CHECKIN_NAME, name)
                 .putBoolean(KEY_CHECKIN_ANONYMOUS, anonymous)
                 .apply()
+            // Push the resolved display name (or null when anonymous/blank) to the leaderboard.
+            try {
+                CheckinApi.syncProfileName(checkinDisplayName())
+            } catch (e: Exception) {
+                // Non-fatal: the name will also be upserted on the next check-in.
+            }
         }
     }
 

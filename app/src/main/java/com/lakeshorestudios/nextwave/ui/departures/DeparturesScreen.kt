@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LocationOn
@@ -56,11 +57,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lakeshorestudios.nextwave.data.models.Departure
 import com.lakeshorestudios.nextwave.data.models.DepartureStatus
+import com.lakeshorestudios.nextwave.data.models.Station
 import com.lakeshorestudios.nextwave.data.models.WaveRating
 import com.lakeshorestudios.nextwave.data.models.WaveCheckin
 import com.lakeshorestudios.nextwave.data.models.WaveCheckinCount
 import com.lakeshorestudios.nextwave.data.utils.CalendarEventContent
 import com.lakeshorestudios.nextwave.data.utils.ShareTextBuilder
+import com.lakeshorestudios.nextwave.ui.checkin.CheckinContext
 import com.lakeshorestudios.nextwave.ui.checkin.CheckinStore
 import com.lakeshorestudios.nextwave.ui.components.ShareWaveSheet
 import com.lakeshorestudios.nextwave.ui.components.WaveCheckinBadge
@@ -101,6 +104,7 @@ import com.lakeshorestudios.nextwave.data.models.getWetsuitThickness
 fun DeparturesScreen(
     @Suppress("UNUSED_PARAMETER") stationId: String,
     onBackClick: () -> Unit,
+    onLeaderboardClick: (String) -> Unit,
     viewModel: DeparturesViewModel = viewModel(),
     checkinStore: CheckinStore = viewModel(),
     settingsViewModel: com.lakeshorestudios.nextwave.ui.settings.SettingsViewModel = viewModel()
@@ -162,13 +166,19 @@ fun DeparturesScreen(
                     }
                 },
                 actions = {
+                    // Per-station leaderboard
+                    IconButton(
+                        onClick = { uiState.station?.let { onLeaderboardClick(it.id) } }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.EmojiEvents,
+                            contentDescription = "Station leaderboard",
+                            tint = headerTextColor
+                        )
+                    }
                     // Favorite icon
                     IconButton(
-                        onClick = { 
-                            uiState.station?.let { station ->
-                                viewModel.toggleFavorite(station)
-                            }
-                        }
+                        onClick = { uiState.station?.let { station -> viewModel.toggleFavorite(station) } }
                     ) {
                         Icon(
                             imageVector = if (uiState.isFavorite) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
@@ -254,6 +264,15 @@ fun DeparturesScreen(
                             emptyMap()
                         }
 
+                    // Full-day departure instants for first/last-of-day flags.
+                    val dayDepartureTimes: List<Date> =
+                        departuresWithWaveNumbers.map { it.departureDateTime }
+
+                    fun checkinContextFor(dep: Departure): CheckinContext? {
+                        val st = station ?: return null
+                        return buildCheckinContext(dep.departureDateTime, st, dayDepartureTimes)
+                    }
+
                     LaunchedEffect(waveIdByDeparture.values.toList()) {
                         val ids = waveIdByDeparture.values.toList()
                         if (ids.isNotEmpty()) checkinStore.refresh(ids)
@@ -307,16 +326,18 @@ fun DeparturesScreen(
                                 onShareClick = { shareTarget = departure },
                                 onCheckinToggle = {
                                     if (waveId != null) {
-                                        if (settingsViewModel.hasCheckinIdentity()) {
-                                            checkinStore.toggle(
-                                                waveId = waveId,
-                                                departureAt = departure.departureDateTime,
-                                                displayName = settingsViewModel.checkinDisplayName()
-                                            )
-                                        } else {
-                                            // First check-in without an identity yet:
-                                            // let the user set/change their name, then check in.
-                                            checkinIdentityPrompt = waveId to departure.departureDateTime
+                                        val ctx = checkinContextFor(departure)
+                                        if (ctx != null) {
+                                            if (settingsViewModel.hasCheckinIdentity()) {
+                                                checkinStore.toggle(
+                                                    waveId = waveId,
+                                                    departureAt = departure.departureDateTime,
+                                                    displayName = settingsViewModel.checkinDisplayName(),
+                                                    context = ctx
+                                                )
+                                            } else {
+                                                checkinIdentityPrompt = waveId to departure.departureDateTime
+                                            }
                                         }
                                     }
                                 }
@@ -366,11 +387,17 @@ fun DeparturesScreen(
             initialAnonymous = settingsViewModel.checkinAnonymous,
             onSave = { name, anonymous ->
                 settingsViewModel.setCheckinIdentity(name, anonymous)
-                checkinStore.toggle(
-                    waveId = promptWaveId,
-                    departureAt = departureAt,
-                    displayName = settingsViewModel.checkinDisplayName()
-                )
+                val st = uiState.station
+                if (st != null) {
+                    val dayTimes = uiState.departures.map { it.departureDateTime }
+                    val ctx = buildCheckinContext(departureAt, st, dayTimes)
+                    checkinStore.toggle(
+                        waveId = promptWaveId,
+                        departureAt = departureAt,
+                        displayName = settingsViewModel.checkinDisplayName(),
+                        context = ctx
+                    )
+                }
                 checkinIdentityPrompt = null
             },
             onDismiss = { checkinIdentityPrompt = null }
@@ -901,6 +928,21 @@ fun DepartureItem(
             }
         }
     }
+}
+
+private fun buildCheckinContext(
+    departureAt: java.util.Date,
+    station: Station,
+    dayTimes: List<java.util.Date>
+): CheckinContext {
+    val lakeId = station.lake.ifBlank { "unknown" }
+    val dayLoaded = dayTimes.any { it.time == departureAt.time }
+    return CheckinContext(
+        stationId = station.id,
+        lakeId = lakeId,
+        isFirstOfDay = dayLoaded && WaveCheckin.isFirstOfDay(departureAt, dayTimes),
+        isLastOfDay = dayLoaded && WaveCheckin.isLastOfDay(departureAt, dayTimes)
+    )
 }
 
 /**
