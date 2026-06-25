@@ -95,7 +95,8 @@ object AverageWaterLevels {
         "Walensee" to 419.20,
         "Hallwilersee" to 449.30,
         "Sempachersee" to 503.30,
-        "Lago Maggiore" to 193.50
+        "Lago Maggiore" to 193.50,
+        "Greifensee" to 435.10
     )
 
     fun getAverage(lakeName: String): Double? = levels[lakeName]

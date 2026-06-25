@@ -14,8 +14,8 @@ android {
         applicationId = "com.lakeshorestudios.nextwave"
         minSdk = 26
         targetSdk = 35
-        versionCode = 16
-        versionName = "4.0"
+        versionCode = 17
+        versionName = "4.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
