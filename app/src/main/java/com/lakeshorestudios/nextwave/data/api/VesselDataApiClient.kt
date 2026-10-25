@@ -11,8 +11,8 @@ import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * API client for the VesselData Vercel backend.
- * Endpoint: https://vesseldata-api.vercel.app/api/water-temperature
+ * API client for the next-wave-api backend (Coolify).
+ * Endpoint: https://api.nextwaveapp.ch/water-temperature
  * Returns water levels (and optionally temperature) for Swiss lakes.
  */
 class VesselDataApiClient {
@@ -55,7 +55,7 @@ class VesselDataApiClient {
         }
 
         try {
-            val url = "https://vesseldata-api.vercel.app/api/water-temperature"
+            val url = "https://api.nextwaveapp.ch/water-temperature"
             Log.d(TAG, "Fetching water levels from: $url")
 
             val responseText = URL(url).readTextWithTimeout()

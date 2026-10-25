@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * API client for ZSG ship deployment data.
- * Endpoint: https://vesseldata-api.vercel.app/api/ships
+ * Endpoint: https://api.nextwaveapp.ch/ships
  * Returns ship names mapped to course numbers for upcoming days.
  */
 class ShipApiClient {
@@ -48,7 +48,7 @@ class ShipApiClient {
      */
     private suspend fun fetchShipData() {
         try {
-            val url = "https://vesseldata-api.vercel.app/api/ships"
+            val url = "https://api.nextwaveapp.ch/ships"
             Log.d(TAG, "Fetching ship deployments from: $url")
 
             val responseText = URL(url).readTextWithTimeout()
