@@ -35,8 +35,14 @@ class FavoritesManager(context: Context) {
         val favoritesJson = sharedPreferences.getString(KEY_FAVORITES, null)
         if (favoritesJson != null) {
             val type = object : TypeToken<List<Station>>() {}.type
-            val favoritesList = gson.fromJson<List<Station>>(favoritesJson, type)
-            _favorites.value = favoritesList
+            val favoritesList = gson.fromJson<List<Station>>(favoritesJson, type) ?: emptyList()
+
+            // Repair favorites saved with outdated station data (wrong UIC / coordinates)
+            val migrated = FavoritesMigration.migrate(favoritesList)
+            _favorites.value = migrated ?: favoritesList
+            if (migrated != null) {
+                saveFavorites()
+            }
         }
     }
     

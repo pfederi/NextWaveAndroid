@@ -1,6 +1,7 @@
 package com.lakeshorestudios.nextwave
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,6 +21,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.util.Consumer
+import androidx.navigation.compose.rememberNavController
 import com.lakeshorestudios.nextwave.ui.theme.NextWaveTheme
 import com.lakeshorestudios.nextwave.ui.navigation.NextWaveNavHost
 
@@ -76,12 +79,35 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    NextWaveNavHost()
+                    // The launching intent (App Link https://nextwaveapp.ch/s/{uic}) is
+                    // handled by the NavHost itself; links arriving while the activity is
+                    // running (launchMode singleTop) come in through onNewIntent.
+                    val navController = rememberNavController()
+                    DisposableEffect(navController) {
+                        val listener = Consumer<Intent> { newIntent ->
+                            navController.handleDeepLink(deepLinkIntentForRunningActivity(newIntent))
+                        }
+                        addOnNewIntentListener(listener)
+                        onDispose { removeOnNewIntentListener(listener) }
+                    }
+                    NextWaveNavHost(navController = navController)
                 }
             }
         }
     }
     
+    /**
+     * Links from browsers arrive with FLAG_ACTIVITY_NEW_TASK. For such intents
+     * NavController.handleDeepLink() restarts the whole task, which is only needed when
+     * the activity is created fresh. Here we are already the running root of our own task,
+     * so adding CLEAR_TASK makes Navigation rebuild the back stack (home -> departures) in
+     * place instead of recreating the activity.
+     */
+    private fun deepLinkIntentForRunningActivity(intent: Intent): Intent {
+        if (intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK == 0) return intent
+        return Intent(intent).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+    }
+
     /**
      * Check and request location permissions if needed
      */

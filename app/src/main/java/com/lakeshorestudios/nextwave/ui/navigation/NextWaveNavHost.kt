@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.lakeshorestudios.nextwave.ui.departures.DeparturesScreen
 import com.lakeshorestudios.nextwave.ui.home.HomeScreen
 import com.lakeshorestudios.nextwave.ui.settings.SettingsScreen
@@ -27,6 +28,13 @@ object NavRoutes {
 
     // Helper function to create departures route with parameter
     fun departuresRoute(stationId: String) = "departures/$stationId"
+
+    // App Links to a station's departures: https://nextwaveapp.ch/s/{uic}
+    // Hosts and path prefix must match the intent filter in AndroidManifest.xml
+    val DEPARTURES_DEEP_LINKS = listOf(
+        "https://nextwaveapp.ch/s/{stationId}",
+        "https://www.nextwaveapp.ch/s/{stationId}"
+    )
 
     fun leaderboardRoute(stationId: String? = null): String =
         if (stationId == null) "leaderboard" else "leaderboard?stationId=$stationId"
@@ -73,12 +81,25 @@ fun NextWaveNavHost(
                 navArgument("stationId") {
                     type = NavType.StringType
                 }
-            )
+            ),
+            deepLinks = NavRoutes.DEPARTURES_DEEP_LINKS.map { pattern ->
+                navDeepLink { uriPattern = pattern }
+            }
         ) { backStackEntry ->
             val stationId = backStackEntry.arguments?.getString("stationId") ?: ""
             DeparturesScreen(
                 stationId = stationId,
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    if (navController.previousBackStackEntry != null) {
+                        navController.popBackStack()
+                    } else {
+                        // Opened via deep link inside another app's task: there is nothing
+                        // below us, so go up to home instead of leaving an empty NavHost
+                        navController.navigate(NavRoutes.HOME_SCREEN) {
+                            popUpTo(NavRoutes.DEPARTURES_SCREEN) { inclusive = true }
+                        }
+                    }
+                },
                 onLeaderboardClick = { sid -> navController.navigate(NavRoutes.leaderboardRoute(sid)) }
             )
         }
