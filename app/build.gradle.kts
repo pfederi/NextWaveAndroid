@@ -8,14 +8,14 @@ plugins {
 
 android {
     namespace = "com.lakeshorestudios.nextwave"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.lakeshorestudios.nextwave"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 17
-        versionName = "4.0.1"
+        targetSdk = 36
+        versionCode = 18
+        versionName = "4.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
